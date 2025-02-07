@@ -1,6 +1,6 @@
-'''
+"""
 Tests for rich formatting: tables etc.
-'''
+"""
 from .. import load, loads
 from ..extra import Table
 
@@ -8,7 +8,8 @@ import pytest
 
 
 def test_table() -> None:
-    root = loads('''
+    root = loads(
+        """
 |       |           |     |
 |       | "heading" |     |
 |       |           |     |
@@ -34,7 +35,8 @@ some irrelevant text
 |--------|
 | value1 |
 | value2 |
-    ''')
+    """
+    )
 
     [gap1, t1, gap2, t2, gap3, t3, gap4] = root.body_rich
 
@@ -47,21 +49,21 @@ some irrelevant text
     assert ilen(t1.rows) == 6
 
     with pytest.raises(RuntimeError):
-        list(t1.as_dicts) # not sure what should it be
+        list(t1.as_dicts)  # not sure what should it be
 
     assert ilen(t2.blocks) == 2
     assert ilen(t2.rows) == 5
-    assert list(t2.rows)[3] == ['[2020-11-05 Thu 23:44]', '']
-
+    assert list(t2.rows)[3] == ["[2020-11-05 Thu 23:44]", ""]
 
     assert ilen(t3.blocks) == 2
-    assert list(t3.rows) == [['simple'], ['value1'], ['value2']]
-    assert t3.as_dicts.columns == ['simple']
-    assert list(t3.as_dicts) == [{'simple': 'value1'}, {'simple': 'value2'}]
+    assert list(t3.rows) == [["simple"], ["value1"], ["value2"]]
+    assert t3.as_dicts.columns == ["simple"]
+    assert list(t3.as_dicts) == [{"simple": "value1"}, {"simple": "value2"}]
 
 
 def test_table_2() -> None:
-    root = loads('''
+    root = loads(
+        """
 * item
 
 #+tblname: something
@@ -80,7 +82,8 @@ return fname
 
 #+RESULTS:
 [[file:plot.png]]
-''')
+"""
+    )
     [_, t, _] = root.children[0].body_rich
     assert ilen(t.as_dicts) == 3
 

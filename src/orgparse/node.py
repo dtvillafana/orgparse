@@ -1,8 +1,28 @@
 import re
 import itertools
-from typing import List, Iterable, Iterator, Optional, Union, Tuple, cast, Dict, Set, Sequence, Any
+from typing import (
+    List,
+    Iterable,
+    Iterator,
+    Optional,
+    Union,
+    Tuple,
+    cast,
+    Dict,
+    Set,
+    Sequence,
+    Any,
+)
 
-from .date import OrgDate, OrgDateClock, OrgDateRepeatedTask, parse_sdc, OrgDateScheduled, OrgDateDeadline, OrgDateClosed
+from .date import (
+    OrgDate,
+    OrgDateClock,
+    OrgDateRepeatedTask,
+    parse_sdc,
+    OrgDateScheduled,
+    OrgDateDeadline,
+    OrgDateClosed,
+)
 from .inline import to_plain_text
 from .extra import to_rich_text, Rich
 
@@ -15,6 +35,7 @@ def lines_to_chunks(lines: Iterable[str]) -> Iterable[List[str]]:
             chunk = []
         chunk.append(l)
     yield chunk
+
 
 RE_NODE_HEADER = re.compile(r"^\*+ ")
 
@@ -36,7 +57,8 @@ def parse_heading_level(heading):
     if match:
         return (match.group(2), len(match.group(1)))
 
-RE_HEADING_STARS = re.compile(r'^(\*+)\s+(.*?)\s*$')
+
+RE_HEADING_STARS = re.compile(r"^(\*+)\s+(.*?)\s*$")
 
 
 def parse_heading_tags(heading: str) -> Tuple[str, List[str]]:
@@ -65,16 +87,19 @@ def parse_heading_tags(heading: str) -> Tuple[str, List[str]]:
     if match:
         heading = match.group(1)
         tagstr = match.group(2)
-        tags = tagstr.split(':')
+        tags = tagstr.split(":")
     else:
         tags = []
     return (heading, tags)
 
+
 # Tags are normal words containing letters, numbers, '_', and '@'. https://orgmode.org/manual/Tags.html
-RE_HEADING_TAGS = re.compile(r'(.*?)\s*:([\w@:]+):\s*$')
+RE_HEADING_TAGS = re.compile(r"(.*?)\s*:([\w@:]+):\s*$")
 
 
-def parse_heading_todos(heading: str, todo_candidates: List[str]) -> Tuple[str, Optional[str]]:
+def parse_heading_todos(
+    heading: str, todo_candidates: List[str]
+) -> Tuple[str, Optional[str]]:
     """
     Get TODO keyword and heading without TODO keyword.
 
@@ -87,9 +112,9 @@ def parse_heading_todos(heading: str, todo_candidates: List[str]) -> Tuple[str, 
     """
     for todo in todo_candidates:
         if heading == todo:
-            return ('', todo)
-        if heading.startswith(todo + ' '):
-            return (heading[len(todo) + 1:], todo)
+            return ("", todo)
+        if heading.startswith(todo + " "):
+            return (heading[len(todo) + 1 :], todo)
     return (heading, None)
 
 
@@ -113,9 +138,12 @@ def parse_heading_priority(heading):
     else:
         return (heading, None)
 
-RE_HEADING_PRIORITY = re.compile(r'^\s*\[#([A-Z0-9])\] ?(.*)$')
+
+RE_HEADING_PRIORITY = re.compile(r"^\s*\[#([A-Z0-9])\] ?(.*)$")
 
 PropertyValue = Union[str, int, float]
+
+
 def parse_property(line: str) -> Tuple[Optional[str], Optional[PropertyValue]]:
     """
     Get property from given string.
@@ -132,11 +160,13 @@ def parse_property(line: str) -> Tuple[Optional[str], Optional[PropertyValue]]:
     if match:
         prop_key = match.group(1)
         prop_val = match.group(2)
-        if prop_key == 'Effort':
+        if prop_key == "Effort":
             prop_val = parse_duration_to_minutes(prop_val)
     return (prop_key, prop_val)
 
-RE_PROP = re.compile(r'^\s*:(.*?):\s*(.*?)\s*$')
+
+RE_PROP = re.compile(r"^\s*:(.*?):\s*(.*?)\s*$")
+
 
 def parse_duration_to_minutes(duration: str) -> Union[float, int]:
     """
@@ -167,6 +197,7 @@ def parse_duration_to_minutes(duration: str) -> Union[float, int]:
 
     minutes = parse_duration_to_minutes_float(duration)
     return int(minutes) if minutes.is_integer() else minutes
+
 
 def parse_duration_to_minutes_float(duration: str) -> float:
     """
@@ -214,12 +245,15 @@ def parse_duration_to_minutes_float(duration: str) -> float:
         return float(minutes)
     match = RE_ORG_DURATION_MIXED.fullmatch(duration)
     if match:
-        units_part = match.groupdict()['A']
-        hms_part = match.groupdict()['B']
-        return parse_duration_to_minutes_float(units_part) + parse_duration_to_minutes_float(hms_part)
+        units_part = match.groupdict()["A"]
+        hms_part = match.groupdict()["B"]
+        return parse_duration_to_minutes_float(
+            units_part
+        ) + parse_duration_to_minutes_float(hms_part)
     if RE_FLOAT.fullmatch(duration):
         return float(duration)
     raise ValueError("Invalid duration format %s" % duration)
+
 
 # Conversion factor to minutes for a duration.
 ORG_DURATION_UNITS = {
@@ -231,31 +265,37 @@ ORG_DURATION_UNITS = {
     "y": 60 * 24 * 365.25,
 }
 # Regexp matching for all units.
-ORG_DURATION_UNITS_RE = r'(%s)' % r'|'.join(ORG_DURATION_UNITS.keys())
+ORG_DURATION_UNITS_RE = r"(%s)" % r"|".join(ORG_DURATION_UNITS.keys())
 # Regexp matching a duration expressed with H:MM or H:MM:SS format.
 # Hours can use any number of digits.
-ORG_DURATION_H_MM_RE = r'[ \t]*[0-9]+(?::[0-9]{2}){1,2}[ \t]*'
+ORG_DURATION_H_MM_RE = r"[ \t]*[0-9]+(?::[0-9]{2}){1,2}[ \t]*"
 RE_ORG_DURATION_H_MM = re.compile(ORG_DURATION_H_MM_RE)
 # Regexp matching a duration with an unit.
 # Allowed units are defined in ORG_DURATION_UNITS.
 # Match group 1 contains the bare number.
 # Match group 2 contains the unit.
-ORG_DURATION_UNIT_RE = r'([0-9]+(?:[.][0-9]*)?)[ \t]*' + ORG_DURATION_UNITS_RE
+ORG_DURATION_UNIT_RE = r"([0-9]+(?:[.][0-9]*)?)[ \t]*" + ORG_DURATION_UNITS_RE
 RE_ORG_DURATION_UNIT = re.compile(ORG_DURATION_UNIT_RE)
 # Regexp matching a duration expressed with units.
 # Allowed units are defined in ORG_DURATION_UNITS.
-ORG_DURATION_FULL_RE = r'(?:[ \t]*%s)+[ \t]*' % ORG_DURATION_UNIT_RE
+ORG_DURATION_FULL_RE = r"(?:[ \t]*%s)+[ \t]*" % ORG_DURATION_UNIT_RE
 RE_ORG_DURATION_FULL = re.compile(ORG_DURATION_FULL_RE)
 # Regexp matching a duration expressed with units and H:MM or H:MM:SS format.
 # Allowed units are defined in ORG_DURATION_UNITS.
 # Match group A contains units part.
 # Match group B contains H:MM or H:MM:SS part.
-ORG_DURATION_MIXED_RE = r'(?P<A>([ \t]*%s)+)[ \t]*(?P<B>[0-9]+(?::[0-9][0-9]){1,2})[ \t]*' % ORG_DURATION_UNIT_RE
+ORG_DURATION_MIXED_RE = (
+    r"(?P<A>([ \t]*%s)+)[ \t]*(?P<B>[0-9]+(?::[0-9][0-9]){1,2})[ \t]*"
+    % ORG_DURATION_UNIT_RE
+)
 RE_ORG_DURATION_MIXED = re.compile(ORG_DURATION_MIXED_RE)
 # Regexp matching float numbers.
-RE_FLOAT = re.compile(r'[0-9]+([.][0-9]*)?')
+RE_FLOAT = re.compile(r"[0-9]+([.][0-9]*)?")
 
-def parse_comment(line: str): #  -> Optional[Tuple[str, Sequence[str]]]: # todo wtf?? it says 'ABCMeta isn't subscriptable??'
+
+def parse_comment(
+    line: str,
+):  #  -> Optional[Tuple[str, Sequence[str]]]: # todo wtf?? it says 'ABCMeta isn't subscriptable??'
     """
     Parse special comment such as ``#+SEQ_TODO``
 
@@ -266,17 +306,20 @@ def parse_comment(line: str): #  -> Optional[Tuple[str, Sequence[str]]]: # todo 
     >>> parse_comment('#+FILETAGS: :tag1:tag2:')
     ('FILETAGS', ['tag1', 'tag2'])
     """
-    match = re.match(r'\s*#\+', line)
+    match = re.match(r"\s*#\+", line)
     if match:
         end = match.end(0)
-        comment = line[end:].split(':', maxsplit=1)
+        comment = line[end:].split(":", maxsplit=1)
         if len(comment) >= 2:
-            key   = comment[0]
+            key = comment[0]
             value = comment[1].strip()
-            if key.upper() == 'FILETAGS':
+            if key.upper() == "FILETAGS":
                 # just legacy behaviour; it seems like filetags is the only one that separated by ':'
                 # see https://orgmode.org/org.html#In_002dbuffer-Settings
-                return (key, [c.strip() for c in value.split(':') if len(c.strip()) > 0])
+                return (
+                    key,
+                    [c.strip() for c in value.split(":") if len(c.strip()) > 0],
+                )
             else:
                 return (key, [value])
     return None
@@ -301,14 +344,16 @@ def parse_seq_todo(line):
     * (info "(org) Fast access to TODO states")
 
     """
-    todo_done = line.split('|', 1)
+    todo_done = line.split("|", 1)
     if len(todo_done) == 2:
         (todos, dones) = todo_done
     else:
-        (todos, dones) = (line, '')
-    strip_fast_access_key = lambda x: x.split('(', 1)[0]
-    return (list(map(strip_fast_access_key, todos.split())),
-            list(map(strip_fast_access_key, dones.split())))
+        (todos, dones) = (line, "")
+    strip_fast_access_key = lambda x: x.split("(", 1)[0]
+    return (
+        list(map(strip_fast_access_key, todos.split())),
+        list(map(strip_fast_access_key, dones.split())),
+    )
 
 
 class OrgEnv(object):
@@ -317,8 +362,7 @@ class OrgEnv(object):
     Information global to the file (e.g, TODO keywords).
     """
 
-    def __init__(self, todos=['TODO'], dones=['DONE'],
-                 filename='<undefined>'):
+    def __init__(self, todos=["TODO"], dones=["DONE"], filename="<undefined>"):
         self._todos = list(todos)
         self._dones = list(dones)
         self._todo_not_specified_in_comment = True
@@ -473,7 +517,7 @@ class OrgBaseNode(Sequence):
     5
     """
 
-    _body_lines: List[str] # set by the child classes
+    _body_lines: List[str]  # set by the child classes
 
     def __init__(self, env, index=None) -> None:
         """
@@ -485,7 +529,7 @@ class OrgBaseNode(Sequence):
         """
         self.env = env
 
-        self.linenumber = cast(int, None) # set in parse_lines
+        self.linenumber = cast(int, None)  # set in parse_lines
 
         # content
         self._lines: List[str] = []
@@ -512,7 +556,7 @@ class OrgBaseNode(Sequence):
     def __iter__(self):
         yield self
         level = self.level
-        for node in self.env._nodes[self._index + 1:]:
+        for node in self.env._nodes[self._index + 1 :]:
             if node.level > level:
                 yield node
             else:
@@ -539,8 +583,9 @@ class OrgBaseNode(Sequence):
                     return node
             raise IndexError("Out of range {0}".format(key))
         else:
-            raise TypeError("Inappropriate type {0} for {1}"
-                            .format(type(key), type(self)))
+            raise TypeError(
+                "Inappropriate type {0} for {1}".format(type(key), type(self))
+            )
 
     # tree structure
 
@@ -571,7 +616,7 @@ class OrgBaseNode(Sequence):
         True
 
         """
-        return self._find_same_level(reversed(self.env._nodes[:self._index]))
+        return self._find_same_level(reversed(self.env._nodes[: self._index]))
 
     @property
     def next_same_level(self):
@@ -593,11 +638,11 @@ class OrgBaseNode(Sequence):
         True
 
         """
-        return self._find_same_level(self.env._nodes[self._index + 1:])
+        return self._find_same_level(self.env._nodes[self._index + 1 :])
 
     # FIXME: cache parent node
     def _find_parent(self):
-        for node in reversed(self.env._nodes[:self._index]):
+        for node in reversed(self.env._nodes[: self._index]):
             if node.level < self.level:
                 return node
 
@@ -687,7 +732,7 @@ class OrgBaseNode(Sequence):
 
     # FIXME: cache children nodes
     def _find_children(self):
-        nodeiter = iter(self.env._nodes[self._index + 1:])
+        nodeiter = iter(self.env._nodes[self._index + 1 :])
         try:
             node = next(nodeiter)
         except StopIteration:
@@ -796,11 +841,11 @@ class OrgBaseNode(Sequence):
             parsed = parse_comment(line)
             if parsed:
                 (key, vals) = parsed
-                key = key.upper() # case insensitive, so keep as uppercase
+                key = key.upper()  # case insensitive, so keep as uppercase
                 special_comments.setdefault(key, []).extend(vals)
         self._special_comments = special_comments
         # parse TODO keys and store in OrgEnv
-        for todokey in ['TODO', 'SEQ_TODO', 'TYP_TODO']:
+        for todokey in ["TODO", "SEQ_TODO", "TYP_TODO"]:
             for val in special_comments.get(todokey, []):
                 self.env.add_todo_keys(*parse_seq_todo(val))
 
@@ -879,25 +924,26 @@ class OrgBaseNode(Sequence):
         return self._get_tags(inher=False)
 
     @staticmethod
-    def _get_text(text, format='plain'):
-        if format == 'plain':
+    def _get_text(text, format="plain"):
+        if format == "plain":
             return to_plain_text(text)
-        elif format == 'raw':
+        elif format == "raw":
             return text
-        elif format == 'rich':
+        elif format == "rich":
             return to_rich_text(text)
         else:
-            raise ValueError('format={0} is not supported.'.format(format))
+            raise ValueError("format={0} is not supported.".format(format))
 
-    def get_body(self, format='plain') -> str:
+    def get_body(self, format="plain") -> str:
         """
         Return a string of body text.
 
         See also: :meth:`get_heading`.
 
         """
-        return self._get_text(
-            '\n'.join(self._body_lines), format) if self._lines else ''
+        return (
+            self._get_text("\n".join(self._body_lines), format) if self._lines else ""
+        )
 
     @property
     def body(self) -> str:
@@ -906,8 +952,8 @@ class OrgBaseNode(Sequence):
 
     @property
     def body_rich(self) -> Iterator[Rich]:
-        r = self.get_body(format='rich')
-        return cast(Iterator[Rich], r) # meh..
+        r = self.get_body(format="rich")
+        return cast(Iterator[Rich], r)  # meh..
 
     @property
     def heading(self) -> str:
@@ -928,8 +974,7 @@ class OrgBaseNode(Sequence):
         """
         return False
 
-    def get_timestamps(self, active=False, inactive=False,
-                       range=False, point=False):
+    def get_timestamps(self, active=False, inactive=False, range=False, point=False):
         """
         Return a list of timestamps in the body text.
 
@@ -982,11 +1027,13 @@ class OrgBaseNode(Sequence):
 
         """
         return [
-            ts for ts in self._timestamps if
-            (((active and ts.is_active()) or
-              (inactive and not ts.is_active())) and
-             ((range and ts.has_end()) or
-              (point and not ts.has_end())))]
+            ts
+            for ts in self._timestamps
+            if (
+                ((active and ts.is_active()) or (inactive and not ts.is_active()))
+                and ((range and ts.has_end()) or (point and not ts.has_end()))
+            )
+        ]
 
     @property
     def datelist(self):
@@ -1055,7 +1102,9 @@ class OrgBaseNode(Sequence):
         elif len(vals) == 1:
             return vals[0]
         else:
-            raise RuntimeError('Multiple values for property {}: {}'.format(property, vals))
+            raise RuntimeError(
+                "Multiple values for property {}: {}".format(property, vals)
+            )
 
 
 class OrgRootNode(OrgBaseNode):
@@ -1069,10 +1118,10 @@ class OrgRootNode(OrgBaseNode):
 
     @property
     def heading(self) -> str:
-        return ''
+        return ""
 
     def _get_tags(self, inher=False) -> Set[str]:
-        filetags = self.get_file_property_list('FILETAGS')
+        filetags = self.get_file_property_list("FILETAGS")
         return set(filetags)
 
     @property
@@ -1133,7 +1182,7 @@ class OrgNode(OrgBaseNode):
         # FIXME: make the following parsers "lazy"
         ilines: Iterator[str] = iter(self._lines)
         try:
-            next(ilines)            # skip heading
+            next(ilines)  # skip heading
         except StopIteration:
             return
         ilines = self._iparse_sdc(ilines)
@@ -1147,8 +1196,7 @@ class OrgNode(OrgBaseNode):
         heading = self._lines[0]
         (heading, self._level) = parse_heading_level(heading)
         (heading, self._tags) = parse_heading_tags(heading)
-        (heading, self._todo) = parse_heading_todos(
-            heading, self.env.all_todo_keys)
+        (heading, self._todo) = parse_heading_todos(heading, self.env.all_todo_keys)
         (heading, self._priority) = parse_heading_priority(heading)
         self._heading = heading
 
@@ -1171,9 +1219,7 @@ class OrgNode(OrgBaseNode):
             return
         (self._scheduled, self._deadline, self._closed) = parse_sdc(line)
 
-        if not (self._scheduled or
-                self._deadline or
-                self._closed):
+        if not (self._scheduled or self._deadline or self._closed):
             yield line  # when none of them were found
 
         for line in ilines:
@@ -1202,23 +1248,25 @@ class OrgNode(OrgBaseNode):
             if match:
                 # FIXME: move this parsing to OrgDateRepeatedTask.from_str
                 mdict = match.groupdict()
-                done_state = mdict['done']
-                todo_state = mdict['todo']
-                date = OrgDate.from_str(mdict['date'])
+                done_state = mdict["done"]
+                todo_state = mdict["todo"]
+                date = OrgDate.from_str(mdict["date"])
                 self._repeated_tasks.append(
-                    OrgDateRepeatedTask(date.start, todo_state, done_state))
+                    OrgDateRepeatedTask(date.start, todo_state, done_state)
+                )
             else:
                 yield line
 
     _repeated_tasks_re = re.compile(
-        r'''
+        r"""
         \s*- \s+
         State \s+ "(?P<done> [^"]+)" \s+
         from  \s+ "(?P<todo> [^"]+)" \s+
-        \[ (?P<date> [^\]]+) \]''',
-        re.VERBOSE)
+        \[ (?P<date> [^\]]+) \]""",
+        re.VERBOSE,
+    )
 
-    def get_heading(self, format='plain'):
+    def get_heading(self, format="plain"):
         """
         Return a string of head text without tags and TODO keywords.
 
@@ -1381,10 +1429,7 @@ class OrgNode(OrgBaseNode):
         """
         Return ``True`` if it has any kind of timestamp
         """
-        return (self.scheduled or
-                self.deadline or
-                self.datelist or
-                self.rangelist)
+        return self.scheduled or self.deadline or self.datelist or self.rangelist
 
     @property
     def repeated_tasks(self):
@@ -1437,7 +1482,7 @@ def parse_lines(lines: Iterable[str], filename, env=None) -> OrgNode:
     if not env:
         env = OrgEnv(filename=filename)
     elif env.filename != filename:
-        raise ValueError('If env is specified, filename must match')
+        raise ValueError("If env is specified, filename must match")
 
     # parse into node of list (environment will be parsed)
     ch1, ch2 = itertools.tee(lines_to_chunks(lines))
@@ -1445,14 +1490,14 @@ def parse_lines(lines: Iterable[str], filename, env=None) -> OrgNode:
     nodes = env.from_chunks(ch2)
     nodelist = []
     for lineno, node in zip(linenos, nodes):
-        lineno += 1 # in text editors lines are 1-indexed
+        lineno += 1  # in text editors lines are 1-indexed
         node.linenumber = lineno
         nodelist.append(node)
     # parse headings (level, TODO, TAGs, and heading)
     nodelist[0]._index = 0
     # parse the root node
     nodelist[0]._parse_pre()
-    for (i, node) in enumerate(nodelist[1:], 1):   # nodes except root node
+    for (i, node) in enumerate(nodelist[1:], 1):  # nodes except root node
         node._index = i
         node._parse_pre()
     env._nodes = nodelist

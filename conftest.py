@@ -9,7 +9,7 @@ import _pytest.main
 import _pytest.pathlib
 
 # we consider all dirs in repo/ to be namespace packages
-root_dir = pathlib.Path(__file__).absolute().parent.resolve() / 'src'
+root_dir = pathlib.Path(__file__).absolute().parent.resolve() / "src"
 assert root_dir.exists(), root_dir
 
 # TODO assert it contains package name?? maybe get it via setuptools..
@@ -19,12 +19,16 @@ namespace_pkg_dirs = [str(d) for d in root_dir.iterdir() if d.is_dir()]
 # resolve_package_path is called from _pytest.pathlib.import_path
 # takes a full abs path to the test file and needs to return the path to the 'root' package on the filesystem
 resolve_pkg_path_orig = _pytest.pathlib.resolve_package_path
+
+
 def resolve_package_path(path: pathlib.Path) -> Optional[pathlib.Path]:
     result = path  # search from the test file upwards
     for parent in result.parents:
         if str(parent) in namespace_pkg_dirs:
             return parent
     raise RuntimeError("Couldn't determine path for ", path)
+
+
 _pytest.pathlib.resolve_package_path = resolve_package_path
 
 
@@ -33,6 +37,10 @@ _pytest.pathlib.resolve_package_path = resolve_package_path
 # so we need to point it at the absolute path properly
 # not sure what are the consequences.. maybe it wouldn't be able to run against installed packages? not sure..
 search_pypath_orig = _pytest.main.search_pypath
+
+
 def search_pypath(module_name: str) -> str:
     return str(root_dir)
+
+
 _pytest.main.search_pypath = search_pypath

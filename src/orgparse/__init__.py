@@ -133,20 +133,22 @@ def load(path: Union[str, Path, TextIO], env: Optional[OrgEnv] = None) -> OrgNod
     # if it is a Path
     if isinstance(path, Path):
         # open that Path
-        with path.open('r', encoding='utf8') as orgfile:
+        with path.open("r", encoding="utf8") as orgfile:
             # try again loading
             return load(orgfile, env)
 
     # We assume it is a file-like object (e.g. io.StringIO)
-    all_lines = (line.rstrip('\n') for line in path)
+    all_lines = (line.rstrip("\n") for line in path)
 
     # get the filename
-    filename = path.name if hasattr(path, 'name') else '<file-like>'
+    filename = path.name if hasattr(path, "name") else "<file-like>"
 
     return loadi(all_lines, filename=filename, env=env)
 
 
-def loads(string: str, filename: str='<string>', env: Optional[OrgEnv]=None) -> OrgNode:
+def loads(
+    string: str, filename: str = "<string>", env: Optional[OrgEnv] = None
+) -> OrgNode:
     """
     Load org-mode document from a string.
 
@@ -156,7 +158,9 @@ def loads(string: str, filename: str='<string>', env: Optional[OrgEnv]=None) -> 
     return loadi(string.splitlines(), filename=filename, env=env)
 
 
-def loadi(lines: Iterable[str], filename: str='<lines>', env: Optional[OrgEnv]=None) -> OrgNode:
+def loadi(
+    lines: Iterable[str], filename: str = "<lines>", env: Optional[OrgEnv] = None
+) -> OrgNode:
     """
     Load org-mode document from an iterative object.
 
